@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pivotal-cf/kiln/internal/builder"
+
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 
@@ -20,9 +22,13 @@ import (
 	. "github.com/pivotal-cf-experimental/gomegamatchers"
 )
 
+const (
+	buildVersion = "0.0.0-dev.0+acceptance"
+)
+
 var (
-	pathToMain   string
-	buildVersion string
+	pathToMain         string
+	tileSourceRevision string
 )
 
 func TestAcceptance(t *testing.T) {
@@ -32,11 +38,11 @@ func TestAcceptance(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	buildVersion = fmt.Sprintf("v0.0.0-dev.%d", time.Now().Unix())
-
 	var err error
 	pathToMain, err = gexec.Build("github.com/pivotal-cf/kiln",
 		"--ldflags", fmt.Sprintf("-X main.version=%s", buildVersion))
+	Expect(err).NotTo(HaveOccurred())
+	tileSourceRevision, err = builder.GitMetadataSHA(".", true)()
 	Expect(err).NotTo(HaveOccurred())
 })
 
@@ -147,7 +153,7 @@ var _ = Describe("bake command", func() {
 		metadataContents, err := io.ReadAll(file)
 		Expect(err).NotTo(HaveOccurred())
 
-		renderedYAML := fmt.Sprintf(expectedMetadata, diegoSHA1, cfSHA1)
+		renderedYAML := fmt.Sprintf(expectedMetadata, diegoSHA1, cfSHA1, tileSourceRevision)
 		Expect(metadataContents).To(HelpfullyMatchYAML(renderedYAML))
 
 		archivedMigration1, err := bakedTile.Open("migrations/v1/201603041539_custom_buildpacks.js")
@@ -218,7 +224,7 @@ var _ = Describe("bake command", func() {
 			metadataContents, err := io.ReadAll(file)
 			Expect(err).NotTo(HaveOccurred())
 
-			renderedYAML := fmt.Sprintf(expectedMetadataWithMultipleStemcells, cfSHA1)
+			renderedYAML := fmt.Sprintf(expectedMetadataWithMultipleStemcells, cfSHA1, tileSourceRevision)
 			Expect(metadataContents).To(HelpfullyMatchYAML(renderedYAML))
 		})
 	})
@@ -261,7 +267,7 @@ var _ = Describe("bake command", func() {
 			metadataContents, err := io.ReadAll(file)
 			Expect(err).NotTo(HaveOccurred())
 
-			renderedYAML := fmt.Sprintf(expectedMetadataWithStemcellTarball, cfSHA1)
+			renderedYAML := fmt.Sprintf(expectedMetadataWithStemcellTarball, cfSHA1, tileSourceRevision)
 			Expect(metadataContents).To(HelpfullyMatchYAML(renderedYAML))
 		})
 	})
@@ -350,7 +356,7 @@ var _ = Describe("bake command", func() {
 			metadataContents, err := io.ReadAll(file)
 			Expect(err).NotTo(HaveOccurred())
 
-			renderedYAML := fmt.Sprintf(expectedMetadata, diegoSHA1, cfSHA1)
+			renderedYAML := fmt.Sprintf(expectedMetadata, diegoSHA1, cfSHA1, tileSourceRevision)
 			Expect(metadataContents).To(HelpfullyMatchYAML(renderedYAML))
 
 			archivedMigration1, err := bakedTile.Open("migrations/v1/201603041539_custom_buildpacks.js")
@@ -458,7 +464,7 @@ var _ = Describe("bake command", func() {
 			// intervals added to make tests pass. it is taking too long locally
 			Eventually(session, time.Second*10).Should(gexec.Exit(0))
 
-			renderedYAML := fmt.Sprintf(expectedMetadata, diegoSHA1, cfSHA1)
+			renderedYAML := fmt.Sprintf(expectedMetadata, diegoSHA1, cfSHA1, tileSourceRevision)
 			Eventually(session.Out.Contents).Should(HelpfullyMatchYAML(renderedYAML))
 		})
 	})
@@ -701,7 +707,7 @@ var _ = Describe("bake command", func() {
 			metadataContents, err := io.ReadAll(file)
 			Expect(err).NotTo(HaveOccurred())
 
-			renderedYAML := fmt.Sprintf(expectedMetadataWithStemcellCriteria, diegoSHA1, cfSHA1)
+			renderedYAML := fmt.Sprintf(expectedMetadataWithStemcellCriteria, diegoSHA1, cfSHA1, tileSourceRevision)
 			Expect(metadataContents).To(HelpfullyMatchYAML(renderedYAML))
 
 			Eventually(session.Err).Should(gbytes.Say("Reading release manifests"))
@@ -873,6 +879,9 @@ some_runtime_configs:
       version: some-addon-version
 serial: false
 selected_value: "235"
+kiln_metadata:
+  kiln_version: 0.0.0-dev.0+acceptance
+  metadata_git_sha: %s
 `
 
 var expectedMetadataWithStemcellCriteria = `---
@@ -895,6 +904,9 @@ stemcell_criteria:
   version: 250.21
   requires_cpi: false
   enable_patch_security_updates: true
+kiln_metadata:
+  kiln_version: 0.0.0-dev.0+acceptance
+  metadata_git_sha: %s
 `
 
 var expectedMetadataWithMultipleStemcells = `---
@@ -914,6 +926,9 @@ stemcell_criteria:
 additional_stemcells_criteria:
 - os: windows
   version: "2019.4"
+kiln_metadata:
+  kiln_version: 0.0.0-dev.0+acceptance
+  metadata_git_sha: %s
 `
 
 var expectedMetadataWithStemcellTarball = `---
@@ -930,4 +945,7 @@ some_releases:
 stemcell_criteria:
   os: ubuntu-trusty
   version: "3215.4"
+kiln_metadata:
+  kiln_version: 0.0.0-dev.0+acceptance
+  metadata_git_sha: %s
 `

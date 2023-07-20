@@ -9,7 +9,7 @@ require (
 	github.com/cloudfoundry/bosh-cli v6.4.1+incompatible
 	github.com/cloudfoundry/bosh-utils v0.0.0-20210130100352-ab14c90ad9f2
 	github.com/cppforlife/go-patch v0.2.0
-	github.com/crhntr/yamlutil v0.0.0-20230523004714-d7a84a7a5d64
+	github.com/crhntr/yamlutil v0.0.0-20230524174859-4e4388958875
 	github.com/cucumber/godog v0.12.5
 	github.com/cucumber/messages-go/v16 v16.0.1
 	github.com/docker/docker v23.0.0-rc.1+incompatible
