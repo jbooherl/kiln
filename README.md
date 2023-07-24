@@ -379,12 +379,6 @@ provides_product_versions:
   version: $( version )
 ```
 
-#### `--skip-fetch-directories`
-
-The `--skip-fetch-directories` flag bypasses the default behavior to fetch releases when running `kiln bake`.
-
-</details>
-
 
 ### `test`
 
